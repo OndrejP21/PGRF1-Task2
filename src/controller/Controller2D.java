@@ -29,6 +29,8 @@ public class Controller2D {
     private Polygon polygon;
     /** Aktuálně zvolený bod při stisku pravým tlačítkem (nejbližší) */
     private Point draggingPoint = null;
+    /** Bod sloužící pro pružné překreslení (mění se při tažení myší) */
+    private Point actualPoint = null;
 
     private java.util.List<Line> lines;
     private RasterizeType type;
@@ -41,7 +43,7 @@ public class Controller2D {
 
         lineRasterizerController = new LineRasterizerController(raster);
 
-        polygonRasterizer = new PolygonRasterizer(lineRasterizerController.getRasterizer());
+        polygonRasterizer = new PolygonRasterizer(lineRasterizerController);
         lines = new ArrayList<>();
         type = RasterizeType.Lines;
         polygon = new Polygon();
@@ -59,7 +61,7 @@ public class Controller2D {
                 super.mouseClicked(e);
 
                 if (SwingUtilities.isRightMouseButton(e)) {
-                    draggingPoint = PointsAlgorithm.findNearestPoint(e.getX(), e.getY(), raster.getWidth() * raster.getHeight(), lines, polygon);
+                    draggingPoint = PointsAlgorithm.findNearestPoint(e.getX(), e.getY(), Constants.MAX_FINDING_RADIUS, lines, polygon);
                     if (draggingPoint != null) panel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.MOVE_CURSOR));
 
                     drawScrene();
@@ -73,7 +75,9 @@ public class Controller2D {
                             return;
                         }
 
-                        lines.add(new Line(firstPoint, new model.Point(e.getX(), e.getY())));
+                        // Pro zarovnanou úsečku
+                        Point[] shiftedPoints = PointsAlgorithm.getShiftedPoints(firstPoint.getX(), firstPoint.getY(), e.getX(), e.getY());
+                        lines.add(new Line(firstPoint, lineRasterizerController.isShiftHold() ? shiftedPoints[1] : new model.Point(e.getX(), e.getY())));
                         firstPoint = null;
                         break;
 
@@ -109,6 +113,14 @@ public class Controller2D {
                     draggingPoint.setY(PointsAlgorithm.clampY(e.getY(), raster.getHeight()));
                     drawScrene();
                 }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                super.mouseMoved(e);
+
+                actualPoint = new Point(e.getX(), e.getY());
+                drawScrene();
             }
         });
 
@@ -159,6 +171,28 @@ public class Controller2D {
                         lineRasterizerController.setLineRasterizerType(LineRasterizerType.DDA);
                         drawScrene();
                         break;
+                    // Změna typu LineRasterizeru na Transition
+                    case KeyEvent.VK_4:
+                        lineRasterizerController.setLineRasterizerType(LineRasterizerType.Color);
+                        drawScrene();
+                        break;
+                        // Držení shiftu
+                    case KeyEvent.VK_SHIFT:
+                        lineRasterizerController.setShiftHold(true);
+                        drawScrene();
+                        break;
+                }
+
+
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    lineRasterizerController.setShiftHold(false);
+                    drawScrene();
                 }
 
             }
@@ -174,6 +208,9 @@ public class Controller2D {
         polygonRasterizer.rasterize(polygon);
 
         if (draggingPoint != null) panel.drawBigPoint(draggingPoint, 5);
+
+        // Pružné vykreslení při tažen myší
+        if (actualPoint != null && firstPoint != null) lineRasterizerController.getRasterizer().rasterize(new Line(firstPoint, actualPoint), lineRasterizerController.isShiftHold());
 
         // Dodatečné stringové informace k vykreslení
         panel.setDrawStringInfo("Aktuální režim: " + type + "; LineRasterizerAlgoritmus: " + lineRasterizerController.getLineRasterizerType());

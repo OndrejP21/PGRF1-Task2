@@ -55,12 +55,41 @@ public class PointsAlgorithm {
         return Math.max(0, Math.min(height - 1, y));
     }
 
-    /** Kontrola, zda je bod oproti bodu pořád v dané maximální vzdálenosti */
-    public static boolean isPointsInMaxDistance(Point p1, Point p2, int size) {
-        int x = Math.abs(p1.getX() - p2.getX());
-        int y = Math.abs(p1.getY() - p2.getY());
+    /** Metoda vrající data po zarovnání úsečky při držení shiftu */
+    public static Point[] getShiftedPoints(int x1, int y1, int x2, int y2) {
+        int dxRaw = x2 - x1;
+        int dyRaw = y2 - y1;
 
-        return x < size || y < size;
+        int dx = Math.abs(dxRaw);
+        int dy = Math.abs(dyRaw);
+
+        // cílový bod
+        int sx = x2;
+        int sy = y2;
+
+        // svisle
+        if (dx == 0) {
+            sx = x1;
+            // vodorovně
+        } else if (dy == 0) {
+            sy = y1;
+        } else {
+            double k = dy / (double) dx;
+            if (k <= Math.tan(Math.toRadians(22.5))) { // čtvrtina
+                // vodorovně
+                sy = y1;
+            } else if (k >= Math.tan(Math.toRadians(67.5))) {
+                // svisle
+                sx = x1;
+            } else {
+                // diagonálně (45°): zvolí kratší osu, pomocí funkce signum zajistí zachování kvadrantu
+                int step = Math.min(dx, dy);
+                sx = x1 + Integer.signum(dxRaw) * step;
+                sy = y1 + Integer.signum(dyRaw) * step;
+            }
+        }
+
+        return new Point[]{new Point(x1, y1), new Point(sx, sy)};
     }
 
 }

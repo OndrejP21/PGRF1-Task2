@@ -1,5 +1,6 @@
 package rasterize.lineRasterizers;
 
+import algorithm.PointsAlgorithm;
 import model.Line;
 import model.Point;
 import raster.RasterBufferedImage;
@@ -22,4 +23,13 @@ public abstract class LineRasterizer {
     public void rasterize(Line line) {
         rasterize(line.getP1(), line.getP2());
     }
+    public void rasterize(Line line, boolean isShiftHold) {
+        Point[] points = PointsAlgorithm.getShiftedPoints(line.getP1().getX(), line.getP1().getY(), line.getP2().getX(), line.getP2().getY());
+
+        if (isShiftHold)
+            rasterize(points[0], points[1]);
+        else
+            rasterize(line);
+    }
+
 }
