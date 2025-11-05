@@ -1,22 +1,35 @@
 package rasterize;
 
+import constants.Constants;
 import controller.LineRasterizerController;
-import enums.LineRasterizerType;
 import model.Polygon;
 import rasterize.lineRasterizers.LineRasterizer;
 
 public class PolygonRasterizer {
 
     private LineRasterizerController controller;
+    private LineRasterizer lineRasterizer;
+
+    public PolygonRasterizer(LineRasterizer lineRasterizer) {
+        this.lineRasterizer = lineRasterizer;
+    }
 
     public PolygonRasterizer(LineRasterizerController controller) {
         this.controller = controller;
     }
 
-    public void rasterize(Polygon polygon) {
+    public void rasterize(Polygon polygon, boolean isLast) {
         if (polygon.getSize() >= 3) {
             for (int i = 0; i < polygon.getSize(); i++) {
-                controller.getRasterizer().rasterize(polygon.getPoint(i), polygon.getPoint(i == polygon.getSize() - 1 ? 0 : i + 1));
+                // možnost zadat rasterizer jak pomocí controlleru, tak lineRasterizeru
+                LineRasterizer rasterizer = (controller != null ? controller.getRasterizer() : lineRasterizer);
+
+                // Pokud se jedná o poslední polygon, změníme barvu na červenou, poté zresetujeme
+                if (isLast) rasterizer.setColor(Constants.RED_COLOR);
+
+                rasterizer.rasterize(polygon.getPoint(i), polygon.getPoint(i == polygon.getSize() - 1 ? 0 : i + 1));
+
+                rasterizer.setColor(Constants.COLOR);
             }
         }
     }

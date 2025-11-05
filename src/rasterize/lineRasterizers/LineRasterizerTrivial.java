@@ -19,7 +19,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
 
         // Stejný bod, vykreslíme pouze bod => degenerovaná úsečka
         if (x1 == x2 && y1 == y2) {
-            image.setPixel(x1, y1, Constants.COLOR);
+            image.setPixel(x1, y1, this.color);
         }
 
         int deltay = y2 - y1;
@@ -44,7 +44,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             for (int x = x1; x <= x2; x++) {
                 int y = Math.round(k * x + q);
 
-                image.setPixel(x, y, Constants.COLOR);
+                image.setPixel(x, y, this.color);
             }
         } else {
             // Prohození koncových bodů v případě, že je první větší
@@ -61,7 +61,7 @@ public class LineRasterizerTrivial extends LineRasterizer {
             for (int y = y1; y <= y2; y++) {
                 int x = Math.round((y - q) / k);
 
-                image.setPixel(deltax != 0 ? x : x1, y, Constants.COLOR);
+                image.setPixel(deltax != 0 ? x : x1, y, this.color);
             }
         }
     }

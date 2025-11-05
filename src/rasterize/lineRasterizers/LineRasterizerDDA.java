@@ -26,7 +26,7 @@ public class LineRasterizerDDA extends LineRasterizer {
 
         // backup, aby nedošlo k dělení nulou => všechny souřadnice jsou stejné
         if (steps == 0) {
-            this.image.setPixel(x1, y1, Constants.COLOR);
+            this.image.setPixel(x1, y1, this.color);
         }
 
         float xIncrement = dx / (float) steps;
@@ -37,7 +37,7 @@ public class LineRasterizerDDA extends LineRasterizer {
         float y = y1;
 
         for (int i = 0; i <= steps; i++) {
-            this.image.setPixel(Math.round(x), Math.round(y), Constants.COLOR);
+            this.image.setPixel(Math.round(x), Math.round(y), this.color);
             x += xIncrement;
             y += yIncrement;
         }

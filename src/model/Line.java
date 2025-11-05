@@ -1,8 +1,8 @@
 package model;
 
 public class Line {
-    private final Point p1;
-    private final Point p2;
+    private Point p1;
+    private Point p2;
 
     public Line(Point p1, Point p2) {
         this.p1 = p1;
@@ -20,5 +20,18 @@ public class Line {
 
     public Point getP2() {
         return p2;
+    }
+
+    public boolean isHorizontal() {
+        return p1.getY() == p2.getY();
+    }
+
+    // Orientace, aby byl vyšší bod p1
+    public void orientate() {
+        if (p1.getY() > p2.getY()) {
+            Point tempP = p1;
+            p1 = p2;
+            p2 = tempP;
+        }
     }
 }

@@ -1,15 +1,18 @@
 package rasterize.lineRasterizers;
 
 import algorithm.PointsAlgorithm;
+import constants.Constants;
 import model.Line;
 import model.Point;
 import raster.RasterBufferedImage;
 
 public abstract class LineRasterizer {
     protected RasterBufferedImage image;
+    protected int color;
 
     public LineRasterizer(RasterBufferedImage image) {
         this.image = image;
+        this.color = Constants.COLOR;
     }
 
     public void rasterize(int x1, int y1, int x2, int y2) {
@@ -32,4 +35,7 @@ public abstract class LineRasterizer {
             rasterize(line);
     }
 
+    public void setColor(int color) {
+        this.color = color;
+    }
 }

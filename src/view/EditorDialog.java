@@ -1,13 +1,13 @@
 package view;
 
+import algorithm.PointsAlgorithm;
+import model.Line;
+import model.Point;
+
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.util.List;
-
-import algorithm.PointsAlgorithm;
-import model.Line;
-import model.Point;
 
 
 public class EditorDialog extends JDialog {

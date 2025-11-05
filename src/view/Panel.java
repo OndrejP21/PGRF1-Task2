@@ -15,7 +15,7 @@ import java.util.*;
 public class Panel extends JPanel {
 
     private final RasterBufferedImage raster;
-    private String drawStringInfo = "";
+    private String[] drawStringInfo = new String[]{"", ""};
 
     public Panel(int width, int height) {
         setPreferredSize(new Dimension(width, height));
@@ -30,10 +30,13 @@ public class Panel extends JPanel {
 
         g.setColor(Color.white);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString(drawStringInfo, 10, 20);
+
+        int i = 1;
+        for (String info : drawStringInfo)
+            g.drawString(info, 5, 20 * i++);
     }
 
-    public void setDrawStringInfo(String drawStringInfo) {
+    public void setDrawStringInfo(String[] drawStringInfo) {
         this.drawStringInfo = drawStringInfo;
     }
 

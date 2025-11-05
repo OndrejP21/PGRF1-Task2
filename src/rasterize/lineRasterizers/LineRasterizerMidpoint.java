@@ -38,7 +38,7 @@ public class LineRasterizerMidpoint extends LineRasterizer{
             int sx = (p1x + p2x) / 2;
             int sy = (p1y + p2y) / 2;
 
-            this.image.setPixel(sx, sy, Constants.COLOR);
+            this.image.setPixel(sx, sy, this.color);
 
             // Pokud rozdíl s krajními body jsou stále větší než 1 px, vykreslujeme dále
             if (Math.abs(sx - p1x) > 1 || Math.abs(sy - p1y) > 1) {
