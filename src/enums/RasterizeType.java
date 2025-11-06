@@ -4,4 +4,5 @@ public enum RasterizeType {
     Lines,
     Polygon,
     ClipperPolygons,
+    Rectangle,
 }

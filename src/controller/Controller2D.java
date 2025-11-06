@@ -14,16 +14,14 @@ import fill.SeedFiller;
 import model.Line;
 import model.Point;
 import model.Polygon;
+import model.Rectangle;
 import raster.RasterBufferedImage;
 import rasterize.PolygonRasterizer;
 import view.ColorPickerDialog;
 import view.EditorDialog;
 import view.Panel;
 
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 
 import java.util.*;
 
@@ -35,6 +33,7 @@ public class Controller2D {
     private model.Point firstPoint;
     private Polygon polygon;
     private Polygon polygonClipper;
+    private Rectangle rectangle;
     /** Seznam polygonů, vždycky pracujeme s posledním polygonem */
     private Deque<Polygon> polygons;
     private java.util.List<Line> lines;
@@ -55,6 +54,7 @@ public class Controller2D {
         polygons = new ArrayDeque<>(){{add(new Polygon());}};
         this.polygon = new Polygon();
         this.polygonClipper = new Polygon();
+        this.rectangle = new Rectangle();
 
         initListeners();
 
@@ -97,9 +97,36 @@ public class Controller2D {
                             polygon.addPoint(p);
                         }
                         break;
+
+                    case RasterizeType.Rectangle:
+                        if (rectangle.getPoints().size() < 2) rectangle.addPoint(p);
+                        break;
                 }
 
                 drawScrene();
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (rectangle.getPoints().size() == 2) {
+                    rectangle.addPoint(new Point(e.getX(), e.getY()));
+                    drawScrene();
+                };
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+        });
+
+        panel.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (rectangle.getPoints().size() >= 2) {
+                    rectangle.addPoint(new Point(e.getX(), e.getY()));
+                    drawScrene();
+                };
             }
         });
 
@@ -110,7 +137,12 @@ public class Controller2D {
 
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_SPACE:
-                        type = type == RasterizeType.Lines ?  RasterizeType.Polygon : type == RasterizeType.Polygon ? RasterizeType.ClipperPolygons : RasterizeType.Lines;
+                        type = type == RasterizeType.Lines ?
+                                RasterizeType.Polygon :
+                                type == RasterizeType.Polygon ?
+                                        RasterizeType.ClipperPolygons :
+                                        type == RasterizeType.ClipperPolygons ? RasterizeType.Rectangle :
+                                        RasterizeType.Lines;
                         drawScrene();
                         break;
 
@@ -144,6 +176,13 @@ public class Controller2D {
 
                         polygons.clear();
                         polygons.add(new Polygon());
+
+                        rectangle.clear();
+
+                        polygon = new Polygon();
+                        polygonClipper = new Polygon();
+
+                        fillerController.clearStructures();
 
                         panel.repaint();
                         break;
@@ -206,6 +245,8 @@ public class Controller2D {
         // Clipping
         this.polygonRasterizer.rasterize(this.polygon, false);
         this.polygonRasterizer.rasterize(this.polygonClipper, false);
+
+        this.polygonRasterizer.rasterize(this.rectangle, false);
 
         Clipper clipper = new Clipper();
         List<Point> clippedPoints = clipper.clip(polygonClipper.getPoints(), polygon.getPoints());

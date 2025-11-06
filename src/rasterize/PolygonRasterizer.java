@@ -3,6 +3,7 @@ package rasterize;
 import constants.Constants;
 import controller.LineRasterizerController;
 import model.Polygon;
+import model.Rectangle;
 import rasterize.lineRasterizers.LineRasterizer;
 
 public class PolygonRasterizer {
@@ -19,7 +20,10 @@ public class PolygonRasterizer {
     }
 
     public void rasterize(Polygon polygon, boolean isLast) {
-        if (polygon.getSize() >= 3) {
+        // pokud se jedná o obdélník, stačí dva body pro začátek rasterizace => pro základnu
+        int minPoints = polygon instanceof Rectangle ? 2 : 3;
+
+        if (polygon.getSize() >= minPoints) {
             for (int i = 0; i < polygon.getSize(); i++) {
                 // možnost zadat rasterizer jak pomocí controlleru, tak lineRasterizeru
                 LineRasterizer rasterizer = (controller != null ? controller.getRasterizer() : lineRasterizer);
