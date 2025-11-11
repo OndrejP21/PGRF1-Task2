@@ -30,7 +30,7 @@ public class ScanLineFiller implements Filler {
         this.polygonRasterizer = polygonRasterizer;
     }
 
-    public void fill() {
+    public void fill(boolean isPatternFill) {
         if (polygon.getSize() < 3) return;
 
         // Vyfiltrujeme hrany, které jsou horizontální a poté všechny zorientujeme
@@ -91,7 +91,7 @@ public class ScanLineFiller implements Filler {
             List<Point> sortedIntersectionPoints = intersectionPoints.stream().sorted(Comparator.comparing(Point::getX)).toList();
 
             for (int i = 0; i < sortedIntersectionPoints.size(); i+=2) {
-                rasterizer.rasterize(sortedIntersectionPoints.get(i), sortedIntersectionPoints.get(i + 1));
+                rasterizer.rasterize(sortedIntersectionPoints.get(i), sortedIntersectionPoints.get(i + 1), isPatternFill);
             }
         }
 

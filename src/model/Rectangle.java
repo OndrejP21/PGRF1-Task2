@@ -1,13 +1,19 @@
 package model;
 
 public class Rectangle extends Polygon {
+    // určuje, zda se může rectangle měnit, až ho dovytvoříme (přestaneme tahat), nebude možné jej měnit
+    private boolean canChange;
     public Rectangle() {
         super();
+
+        canChange = true;
     }
 
 
     @Override
     public void addPoint(Point p) {
+        if (!canChange) return;
+
         // Pokud už máme více bodů než dva, musíme ponechat pouze první dva
         if (this.points.size() > 2) {
             points.subList(2, points.size()).clear();
@@ -72,5 +78,13 @@ public class Rectangle extends Polygon {
 
         this.points.add(B2);
         this.points.add(A2);
+    }
+
+    public boolean isCanChange() {
+        return canChange;
+    }
+
+    public void setCanChange(boolean canChange) {
+        this.canChange = canChange;
     }
 }

@@ -25,6 +25,8 @@ public class FillerController {
     private SeedFillerType seedFillerType;
     // barva ohraničení v případě seedFillerTypu = border
     private int seedFillerBorderColor;
+    // Zda vyplňujeme vzorem
+    private boolean isPatternFill;
     // pole uchovávající body, ve kterých probíhá vyplňování pomocí SeedFillu
     // Pomocí barvy pozadí
     private List<Point> fillingPointsBackground;
@@ -42,6 +44,8 @@ public class FillerController {
         this.lineRasterizerController = lineRasterizerController;
         this.polygonRasterizer = polygonRasterizer;
         seedFillerType = SeedFillerType.Background;
+
+        this.isPatternFill = false;
 
         fillers = new HashMap<>() {{
             put(FillerType.SeedFill, new SeedFiller(raster));
@@ -90,6 +94,14 @@ public class FillerController {
         this.fillerType = this.fillerType == FillerType.SeedFill ? FillerType.ScanLine : FillerType.SeedFill;
     }
 
+    public boolean isPatternFill() {
+        return this.isPatternFill;
+    }
+
+    public void changeIsPatternFill() {
+        this.isPatternFill = !this.isPatternFill;
+    }
+
     /** Voláme vždy, když chceme vyplnit struktury */
     public void fillStructures() {
         Filler actualFiller = this.getFiller();
@@ -97,18 +109,18 @@ public class FillerController {
         if (actualFiller instanceof SeedFiller seedFiller) {
             for (Point p : this.fillingPointsBackground) {
                 seedFiller.changePoint(p);
-                seedFiller.fill();
+                seedFiller.fill(isPatternFill);
             }
 
             for (Point p : this.fillingPointsBorder) {
                 seedFiller.changePoint(p);
-                seedFiller.fill(this.seedFillerBorderColor);
+                seedFiller.fill(this.seedFillerBorderColor, isPatternFill);
             }
 
         } else if (actualFiller instanceof ScanLineFiller scanLineFiller) {
             for (Polygon p : this.polygons) {
                 scanLineFiller.ChangeSettings(p, this.polygonRasterizer, this.lineRasterizerController.getRasterizer());
-                scanLineFiller.fill();
+                scanLineFiller.fill(isPatternFill);
             }
 
         }

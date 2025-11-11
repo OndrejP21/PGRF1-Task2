@@ -1,8 +1,10 @@
 package algorithm;
 
+import constants.Constants;
 import model.Line;
 import model.Point;
 import model.Polygon;
+import model.PolygonPointModel;
 
 import java.util.*;
 
@@ -10,34 +12,26 @@ import java.util.*;
 public class PointsAlgorithm {
     /** Metoda pro získání nejbližšího bodu
      * radiusPx je nastaven defaultně na velikost okna */
-    public static Point findNearestPoint(int mx, int my, int radiusPx, List<Line> lines, Polygon polygon) {
+    public static PolygonPointModel findNearestPoint(int mx, int my, int radiusPx, List<Line> lines, Polygon polygon, Polygon clipperPolygon, List<Polygon> polygons) {
         Point nearest = null;
+        Polygon nearestPolygon = null;
+
         int bestDist2 = radiusPx;
 
-        for (Line L : lines) {
-            Point a = L.getP1();
-            Point b = L.getP2();
+        polygons.add(polygon);
+        polygons.add(clipperPolygon);
 
-            int da2 = dist(mx, my, a.getX(), a.getY());
-            if (da2 <= bestDist2) {
-                bestDist2 = da2; nearest = a;
-            }
-
-            int db2 = dist(mx, my, b.getX(), b.getY());
-            if (db2 <= bestDist2) {
-                bestDist2 = db2; nearest = b;
+        for (Polygon poly : polygons) {
+            for (int i = 0; i < poly.getSize(); i++) {
+                Point p = poly.getPoint(i);
+                int dp2 = dist(mx, my, p.getX(), p.getY());
+                if (dp2 <= bestDist2) {
+                    bestDist2 = dp2; nearest = p; nearestPolygon = poly;
+                }
             }
         }
 
-        for (int i = 0; i < polygon.getSize(); i++) {
-            Point p = polygon.getPoint(i);
-            int dp2 = dist(mx, my, p.getX(), p.getY());
-            if (dp2 <= bestDist2) {
-                bestDist2 = dp2; nearest = p;
-            }
-        }
-
-        return nearest;
+        return nearest != null ? new PolygonPointModel(nearestPolygon, nearest) : null;
     }
 
     private static int dist(int x1, int y1, int x2, int y2) {
@@ -90,6 +84,14 @@ public class PointsAlgorithm {
         }
 
         return new Point[]{new Point(x1, y1), new Point(sx, sy)};
+    }
+
+    /** Metoda pro získání barvy z PATTERNU */
+    public static int getPatternColor(int x, int y) {
+        int modX = x % Constants.PATTERN[0].length;
+        int modY = y % Constants.PATTERN.length;
+
+        return Constants.PATTERN[modY][modX];
     }
 
 }

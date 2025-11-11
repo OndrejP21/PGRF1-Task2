@@ -1,5 +1,6 @@
 package rasterize.lineRasterizers;
 
+import algorithm.PointsAlgorithm;
 import constants.Constants;
 import raster.RasterBufferedImage;
 
@@ -14,8 +15,8 @@ public class LineRasterizerTrivial extends LineRasterizer {
     }
 
     @Override
-    public void rasterize(int x1, int y1, int x2, int y2) {
-        super.rasterize(x1, y1, x2, y2);
+    public void rasterize(int x1, int y1, int x2, int y2, boolean isPatternFill) {
+        super.rasterize(x1, y1, x2, y2, isPatternFill);
 
         // Stejný bod, vykreslíme pouze bod => degenerovaná úsečka
         if (x1 == x2 && y1 == y2) {
@@ -44,7 +45,9 @@ public class LineRasterizerTrivial extends LineRasterizer {
             for (int x = x1; x <= x2; x++) {
                 int y = Math.round(k * x + q);
 
-                image.setPixel(x, y, this.color);
+                int useColor = isPatternFill ? PointsAlgorithm.getPatternColor(x, y) : this.color;
+
+                image.setPixel(x, y, useColor);
             }
         } else {
             // Prohození koncových bodů v případě, že je první větší
@@ -61,7 +64,10 @@ public class LineRasterizerTrivial extends LineRasterizer {
             for (int y = y1; y <= y2; y++) {
                 int x = Math.round((y - q) / k);
 
-                image.setPixel(deltax != 0 ? x : x1, y, this.color);
+                int useX = deltax != 0 ? x : x1;
+                int useColor = isPatternFill ? PointsAlgorithm.getPatternColor(useX, y) : this.color;
+
+                image.setPixel(useX, y, useColor);
             }
         }
     }

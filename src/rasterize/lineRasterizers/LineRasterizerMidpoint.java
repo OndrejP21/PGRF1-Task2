@@ -1,5 +1,6 @@
 package rasterize.lineRasterizers;
 
+import algorithm.PointsAlgorithm;
 import constants.Constants;
 import model.MidPointModel;
 import model.Point;
@@ -18,8 +19,8 @@ public class LineRasterizerMidpoint extends LineRasterizer{
     }
 
     @Override
-    public void rasterize(int x1, int y1, int x2, int y2) {
-        super.rasterize(x1, y1, x2, y2);
+    public void rasterize(int x1, int y1, int x2, int y2, boolean isPatternFill) {
+        super.rasterize(x1, y1, x2, y2, isPatternFill);
 
         Deque<MidPointModel> stack = new ArrayDeque<>();
 
@@ -38,7 +39,9 @@ public class LineRasterizerMidpoint extends LineRasterizer{
             int sx = (p1x + p2x) / 2;
             int sy = (p1y + p2y) / 2;
 
-            this.image.setPixel(sx, sy, this.color);
+            int useColor = isPatternFill ? PointsAlgorithm.getPatternColor(sx, sy) : this.color;
+
+            this.image.setPixel(sx, sy, useColor);
 
             // Pokud rozdíl s krajními body jsou stále větší než 1 px, vykreslujeme dále
             if (Math.abs(sx - p1x) > 1 || Math.abs(sy - p1y) > 1) {

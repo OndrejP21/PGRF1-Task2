@@ -3,15 +3,14 @@ package controller;
 
 import algorithm.PointsAlgorithm;
 import clip.Clipper;
+import clip.Orientation;
 import constants.Constants;
 import enums.FillerType;
 import enums.LineRasterizerType;
 import enums.RasterizeType;
 import enums.SeedFillerType;
-import fill.Filler;
 import fill.ScanLineFiller;
-import fill.SeedFiller;
-import model.Line;
+import model.*;
 import model.Point;
 import model.Polygon;
 import model.Rectangle;
@@ -21,9 +20,11 @@ import view.ColorPickerDialog;
 import view.EditorDialog;
 import view.Panel;
 
+import java.awt.*;
 import java.awt.event.*;
 
 import java.util.*;
+import java.util.List;
 
 public class Controller2D {
     private final Panel panel;
@@ -35,10 +36,15 @@ public class Controller2D {
     private Polygon polygonClipper;
     private Rectangle rectangle;
     /** Seznam polygonů, vždycky pracujeme s posledním polygonem */
-    private Deque<Polygon> polygons;
+    private PolygonsList polygons;
     private java.util.List<Line> lines;
     private RasterizeType type;
     private PolygonRasterizer polygonRasterizer;
+    // povolení změny pozice polygonů (posouvání bodu)
+    private boolean changingPositionEnabled;
+    // Bod, který přesouváme po kliknutí
+    private PolygonPointModel dragging;
+    private Orientation orientation;
 
     public Controller2D(Panel panel) {
         this.panel = panel;
@@ -51,10 +57,15 @@ public class Controller2D {
         fillerController = new FillerController(this.raster, this.lineRasterizerController, this.polygonRasterizer);
         lines = new ArrayList<>();
         type = RasterizeType.Lines;
-        polygons = new ArrayDeque<>(){{add(new Polygon());}};
+        polygons = new PolygonsList();
         this.polygon = new Polygon();
         this.polygonClipper = new Polygon();
         this.rectangle = new Rectangle();
+
+        this.changingPositionEnabled = false;
+
+        dragging = null;
+        this.orientation = Orientation.CCW;
 
         initListeners();
 
@@ -66,6 +77,20 @@ public class Controller2D {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
+                Point p = new Point(e.getX(), e.getY());
+
+                // Pokud je povolená změna bodů, nevykreslujeme nic nového, pouze vybereme bod pro přesun
+                if (changingPositionEnabled && e.getButton() == MouseEvent.BUTTON3) {
+                    dragging = PointsAlgorithm.findNearestPoint(
+                            e.getX(), e.getY(), Constants.MAX_FINDING_RADIUS, lines, polygon, polygonClipper, polygons.getList()
+                    );
+                    if (dragging != null) {
+                        panel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.MOVE_CURSOR));
+                    }
+
+                    drawScrene();
+                    return;
+                }
 
                 if (e.getButton() == MouseEvent.BUTTON2) {
                     fillerController.addFillingPoint(new Point(e.getX(), e.getY()));
@@ -73,7 +98,6 @@ public class Controller2D {
                     return;
                 }
 
-                Point p = new Point(e.getX(), e.getY());
                 switch (type) {
                     case RasterizeType.Lines:
                         if (firstPoint == null) {
@@ -86,8 +110,10 @@ public class Controller2D {
                         break;
 
                     case RasterizeType.Polygon:
-                        assert polygons.peekLast() != null;
-                        polygons.peekLast().addPoint(p);
+                        Polygon peekedPolygon = polygons.peek();
+                        assert peekedPolygon != null;
+
+                        peekedPolygon.addPoint(p);
                         break;
 
                     case RasterizeType.ClipperPolygons:
@@ -108,6 +134,8 @@ public class Controller2D {
 
             @Override
             public void mousePressed(MouseEvent e) {
+                if (changingPositionEnabled) return;
+
                 if (rectangle.getPoints().size() == 2) {
                     rectangle.addPoint(new Point(e.getX(), e.getY()));
                     drawScrene();
@@ -116,15 +144,34 @@ public class Controller2D {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                if (rectangle.hasAtleastThreePoints())
+                    rectangle.setCanChange(false);
 
+
+                if (dragging != null) {
+                    panel.setCursor(java.awt.Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                    dragging = null;
+                    drawScrene();
+                }
             }
         });
 
         panel.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (rectangle.getPoints().size() >= 2) {
-                    rectangle.addPoint(new Point(e.getX(), e.getY()));
+                Point p = new Point(e.getX(), e.getY());
+                boolean rightDown = (e.getModifiersEx() & MouseEvent.BUTTON3_DOWN_MASK) != 0;
+
+                // Pokud je povolená změna bodů, začneme přesouvat bod
+                if (changingPositionEnabled && dragging != null && rightDown) {
+                    dragging.Polygon.changePoint(dragging.Point, p);
+                    dragging.Point = p;
+                    drawScrene();
+                    return;
+                }
+
+            if (rectangle.getPoints().size() >= 2) {
+                    rectangle.addPoint(p);
                     drawScrene();
                 };
             }
@@ -143,20 +190,42 @@ public class Controller2D {
                                         RasterizeType.ClipperPolygons :
                                         type == RasterizeType.ClipperPolygons ? RasterizeType.Rectangle :
                                         RasterizeType.Lines;
-                        drawScrene();
                         break;
 
                         // Změna typu filleru
                     case KeyEvent.VK_F:
                         fillerController.changeFillerType();
-                        drawScrene();
                         break;
 
                         // Kreslení nového polygonu a zároveň přidání aktuálního polygonu do ScanLine
                     case KeyEvent.VK_A:
-                        fillerController.addPolygon(polygons.peekLast());
-                        polygons.add(new Polygon());
-                        drawScrene();
+                        fillerController.addPolygon(polygons.peek());
+                        polygons.addEmptyPolygon();
+                        break;
+
+                        // Smazání aktuálního vybraného vrcholu
+                    case KeyEvent.VK_D:
+                        // Odstraníme daný vrchol polygonu
+                        if (dragging != null) {
+                            // Pokud náhodou odstraníme třetí vrchol, a tak zůstanou v Polygonu pouze dva, musíme ho smazat
+                            if (!dragging.removePointFromPolygon()) {
+                                // Musíme najít, o který polygon se jednalo
+                                // Nejdříve ověříme polygony pro ořezávání
+                                if (polygon == dragging.Polygon) {
+                                    polygon = new Polygon();
+                                } else if (polygonClipper == dragging.Polygon) {
+                                    polygonClipper = new Polygon();
+                                } else {
+                                    polygons.remove(dragging.Polygon);
+
+                                    // Pokud jsme odstranili poslední, musíme jeden přidat => vždy musí v poli jeden být
+                                }
+                            }
+
+                            // Odstraníme i referenci na polygon, který jsme upravovali
+                            dragging = null;
+                            panel.setCursor(java.awt.Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+                        }
                         break;
 
                     case KeyEvent.VK_G:
@@ -167,15 +236,16 @@ public class Controller2D {
                             if (c.isPresent())
                                 fillerController.setSeedFillerBorderColor(c.getAsInt());
                         }
-                        drawScrene();
+                        break;
+
+                    case KeyEvent.VK_H:
+                        changingPositionEnabled = !changingPositionEnabled;
                         break;
 
                     case KeyEvent.VK_C:
-                        panel.getRaster().clear();
                         lines.clear();
 
                         polygons.clear();
-                        polygons.add(new Polygon());
 
                         rectangle.clear();
 
@@ -183,17 +253,23 @@ public class Controller2D {
                         polygonClipper = new Polygon();
 
                         fillerController.clearStructures();
+                        break;
 
-                        panel.repaint();
+                    case KeyEvent.VK_P:
+                        fillerController.changeIsPatternFill();
+                            break;
+
+                    case KeyEvent.VK_O:
+                        orientation = orientation == Orientation.CCW ? Orientation.CW : Orientation.CCW;
                         break;
 
                     case KeyEvent.VK_E:
                         java.awt.Window owner = javax.swing.SwingUtilities.getWindowAncestor(panel);
-                        assert polygons.peekLast() != null;
+                        assert polygons.peek() != null;
                         EditorDialog dialog = new EditorDialog(
                                 owner,
                                 lines,
-                                polygons.peekLast(),
+                                polygons.getList(),
                                 () -> drawScrene(),
                                 panel.getWidth(),
                                 panel.getHeight()
@@ -204,28 +280,24 @@ public class Controller2D {
                         // Změna typu LineRasterizeru na Trivial
                     case KeyEvent.VK_1:
                         lineRasterizerController.setLineRasterizerType(LineRasterizerType.Trivial);
-                        drawScrene();
                         break;
 
                     // Změna typu LineRasterizeru na Midpoint
                     case KeyEvent.VK_2:
                         lineRasterizerController.setLineRasterizerType(LineRasterizerType.Midpoint);
-                        drawScrene();
                         break;
 
                     // Změna typu LineRasterizeru na DDA
                     case KeyEvent.VK_3:
                         lineRasterizerController.setLineRasterizerType(LineRasterizerType.DDA);
-                        drawScrene();
                         break;
                     // Změna typu LineRasterizeru na Transition
                     case KeyEvent.VK_4:
                         lineRasterizerController.setLineRasterizerType(LineRasterizerType.Color);
-                        drawScrene();
                         break;
                 }
 
-
+                drawScrene();
             }
         });
     }
@@ -235,11 +307,11 @@ public class Controller2D {
 
         // Rasterizace úseček
         for (Line line : lines)
-            lineRasterizerController.getRasterizer().rasterize(line);
+            lineRasterizerController.getRasterizer().rasterize(line, false);
 
         // Rasterizace polygonu
-        for (Polygon p : this.polygons) {
-            this.polygonRasterizer.rasterize(p, p == polygons.peekLast());
+        for (Polygon p : this.polygons.getList()) {
+            this.polygonRasterizer.rasterize(p, p == polygons.peek());
         }
 
         // Clipping
@@ -249,17 +321,19 @@ public class Controller2D {
         this.polygonRasterizer.rasterize(this.rectangle, false);
 
         Clipper clipper = new Clipper();
-        List<Point> clippedPoints = clipper.clip(polygonClipper.getPoints(), polygon.getPoints());
+        List<Point> clippedPoints = clipper.clip(polygonClipper.getPoints(), polygon.getPoints(), this.orientation);
 
         ScanLineFiller scanLineFiller = new ScanLineFiller(new Polygon(clippedPoints), this.polygonRasterizer, this.lineRasterizerController.getRasterizer());
-        scanLineFiller.fill();
+        scanLineFiller.fill(this.fillerController.isPatternFill());
 
-        int polygonSize = polygons.size() - 1 + (polygons.peekLast().hasAtleastThreePoints() ? 1 : 0);
+        int polygonSize = polygons.size() - 1 + (polygons.peek().hasAtleastThreePoints() ? 1 : 0);
+
+        if (dragging != null) panel.drawBigPoint(dragging.Point, 5);
 
         // Dodatečné stringové informace k vykreslení
         panel.setDrawStringInfo(new String[]{
-                "Aktuální režim: " + type + "; LineRasterizerAlgoritmus: " + lineRasterizerController.getLineRasterizerType() + "; Počet polygonů: " + polygonSize,
-                "Filler: " + fillerController.getFillerType() + (fillerController.getFillerType() == FillerType.SeedFill ? "; Typ seedFilleru: " + fillerController.getSeedFillerType() : "")});
+                (changingPositionEnabled ? "PŘESOUVÁNÍ STRUKTUR POVOLENO" : "Aktuální režim: " + type + "; LineRasterizerAlgoritmus: " + lineRasterizerController.getLineRasterizerType()) + "; Počet polygonů: " + polygonSize,
+                "Filler: " + fillerController.getFillerType() + (fillerController.getFillerType() == FillerType.SeedFill ? "; Typ seedFilleru: " + fillerController.getSeedFillerType() : ""), "Vyplňování vzorem: " + (this.fillerController.isPatternFill() ? "Ano" : "Ne") + " Orientace ořezávacího polygonu: " + (this.orientation == Orientation.CCW ? "Proti směru" : "Po směru")});
 
         // fillers, vybere se buď seedFill nebo ScanLine
         this.fillerController.fillStructures();

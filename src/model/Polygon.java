@@ -22,6 +22,10 @@ public class Polygon {
         return points.get(index);
     }
 
+    public void removePoint(Point p) {
+        this.points.remove(p);
+    }
+
     public int getSize() {
         return points.size();
     }
@@ -32,6 +36,13 @@ public class Polygon {
 
     public List<Point> getPoints() {
         return points;
+    }
+
+    public void changePoint(Point oldPoint, Point newPoint) {
+        int index = this.points.indexOf(oldPoint);
+        if (index == -1) return;
+
+        this.points.set(index, newPoint);
     }
 
     public boolean hasAtleastThreePoints() {
@@ -46,5 +57,12 @@ public class Polygon {
         }
 
         return lines;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Polygon polygon)) return false;
+        return Objects.equals(points, polygon.points);
     }
 }

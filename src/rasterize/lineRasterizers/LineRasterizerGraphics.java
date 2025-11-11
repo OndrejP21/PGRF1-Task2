@@ -10,7 +10,7 @@ public class LineRasterizerGraphics extends LineRasterizer{
     }
 
     @Override
-    public void rasterize(int x1, int y1, int x2, int y2) {
+    public void rasterize(int x1, int y1, int x2, int y2, boolean isPatternFill) {
         Graphics g = image.getImage().getGraphics();
         g.drawLine(x1, y1, x2, y2);
     }

@@ -31,7 +31,7 @@ public class PolygonRasterizer {
                 // Pokud se jedná o poslední polygon, změníme barvu na červenou, poté zresetujeme
                 if (isLast) rasterizer.setColor(Constants.RED_COLOR);
 
-                rasterizer.rasterize(polygon.getPoint(i), polygon.getPoint(i == polygon.getSize() - 1 ? 0 : i + 1));
+                rasterizer.rasterize(polygon.getPoint(i), polygon.getPoint(i == polygon.getSize() - 1 ? 0 : i + 1), false);
 
                 rasterizer.setColor(Constants.COLOR);
             }

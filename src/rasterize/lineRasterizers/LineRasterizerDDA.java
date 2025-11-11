@@ -1,5 +1,6 @@
 package rasterize.lineRasterizers;
 
+import algorithm.PointsAlgorithm;
 import constants.Constants;
 import raster.RasterBufferedImage;
 
@@ -15,8 +16,8 @@ public class LineRasterizerDDA extends LineRasterizer {
     }
 
     @Override
-    public void rasterize(int x1, int y1, int x2, int y2) {
-        super.rasterize(x1, y1, x2, y2);
+    public void rasterize(int x1, int y1, int x2, int y2, boolean isPatternFill) {
+        super.rasterize(x1, y1, x2, y2, isPatternFill);
 
         int dx = x2 - x1;
         int dy = y2 - y1;
@@ -37,7 +38,11 @@ public class LineRasterizerDDA extends LineRasterizer {
         float y = y1;
 
         for (int i = 0; i <= steps; i++) {
-            this.image.setPixel(Math.round(x), Math.round(y), this.color);
+            int useX = Math.round(x);
+            int useY = Math.round(y);
+            int useColor = isPatternFill ? PointsAlgorithm.getPatternColor(useX, useY) : this.color;
+
+            this.image.setPixel(useX, useY, useColor);
             x += xIncrement;
             y += yIncrement;
         }
